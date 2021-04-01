@@ -9,7 +9,7 @@ import numpy as np
 
 word2vec_model = api.load('word2vec-google-news-300')
 
-tfidf_vectorizer = TfidfVectorizer(use_idf=True, norm='l2', sublinear_tf=True, ngram_range=(1,3), max_features=5000)
+tfidf_vectorizer = TfidfVectorizer(use_idf=True, norm='l2', sublinear_tf=True, ngram_range=(1,3), max_features=300)
 
 def preprocess(text):
     text = BeautifulSoup(' '.join(text.split()), 'html.parser').get_text()
@@ -26,11 +26,11 @@ def word2vec_avg(text):
 def get_tfidf_vectors(train_data, test_data):
     tfidf_vectorizer.fit_transform(train_data)
     
-    train_feature_set = tfidf_vectorizer.transform(train_data)
+    train_feature_set = tfidf_vectorizer.transform(train_data).toarray()
     if test_data == None:
         test_feature_set = None
     else:
-        test_feature_set = tfidf_vectorizer.transform(test_data)
+        test_feature_set = tfidf_vectorizer.transform(test_data).toarray()
     return train_feature_set, test_feature_set
 
 def get_word2vec_avg_vectors(train_data, test_data):
