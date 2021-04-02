@@ -1,0 +1,59 @@
+CS4248 Project
+
+> Feature Engineering
+
+>> Training data columns
+"HITId","HITTypeId","Title","Description","Keywords","Reward","CreationTime","MaxAssignments","RequesterAnnotation","AssignmentDurationInSeconds","AutoApprovalDelayInSeconds","Expiration","NumberOfSimilarHITs","LifetimeInSeconds","AssignmentId","WorkerId","AssignmentStatus","AcceptTime","SubmitTime","AutoApprovalTime","ApprovalTime","RejectionTime","RequesterFeedback","WorkTimeInSeconds","LifetimeApprovalRate","Last30DaysApprovalRate","Last7DaysApprovalRate","Input.threadtype","Input.threadtitle","Input.posts","Input.inst_post","Answer.1","Answer.10","Answer.11","Answer.12","Answer.13","Answer.14","Answer.15","Answer.16","Answer.17","Answer.18","Answer.19","Answer.2","Answer.20","Answer.21","Answer.22","Answer.23","Answer.24","Answer.25","Answer.26","Answer.27","Answer.28","Answer.3","Answer.4","Answer.5","Answer.6","Answer.7","Answer.8","Answer.9","Answer.noreply","Approve","Reject"
+
+>> Thread only features:
+>> 1. a binary feature indicating if the thread was started by an anonymous user
+>> 2. three binary features indicating whether the thread was marked as approved, unresolved or deleted (respectively)
+>> 3. forum id in which the thread was posted
+>> 4. time when the thread was started
+>> 5. time of last posting on the thread
+>> 6. total number of posts in the thread
+>> 7. a binary feature indicating if the thread title contains the words lecture or lectures
+>> 8. a binary feature indicating if the thread title contains the words assignment, quiz, grade, project, exam (and their plural forms)
+
+>> Aggregated post features (presence of keywords):
+>> 9. sum of number of votes received by the individual posts
+>> 10. mean and variance of the posting times of individual posts in the thread
+>> 11. mean of time difference between the posting times of individual posts and the closest course landmark. A course landmark is the deadline of an assignment, exam or project.
+>> 12. sum of count of occurrences of assessment related words e.g. grade, exam, assignment, quiz, reading, project etc. in the posts
+>> 13. sum of count of occurrences of words indicating technical problems e.g. problem, error
+>> 14. sum of count of occurrences of thread conclusive words like thank you and thank
+>> 15. sum of count of occurrences of request, submit, suggest
+
+>> POS tags of thread title and posts (labelled a and b respectively):
+>> 1. word count
+>> 2. character count
+>> 3. word density
+>> 4. punctuation count
+>> 5. stopword count
+>> 6. text polarity
+>> 7. text subjectivity
+>> 8. noun count
+>> 9. verb count
+>> 10. adjective count
+>> 11. adverb count
+>> 12. pronoun count
+
+>> Post Emission Features:
+>> 1. (pi, hi) = count of occurrences of question words or question marks in pi if the state is hi; 0 otherwise.
+>> 2. (pi, hi) = count of occurrences of thank words (thank you or thanks) in pi if the state is hi; 0 otherwise.
+>> 3. (pi, hi) = count of occurrences of greeting words (e.g. hi, hello, good morning, welcome etc ) in pi if the state is hi; 0 otherwise.
+>> 4. (pi, hi) = count of occurrences of assessment related words (e.g. grade, exam, assignment, quiz, reading, project etc.) in pi if the state is hi; 0 otherwise.
+>> 5. (p, ihi) = count of occurrences of request, submit or suggest in pi if the state is hi; 0 otherwise.
+>> 6. (pi, hi) = log(course duration/t(pi)) if the state is hi; 0 otherwise. Here t(pi) is the difference between the posting time of pi and the closest course landmark (assignment or project deadline or exam).
+>> 7. (pi, pi−1, hi) = difference between posting times of pi and pi−1 normalized by course duration if the state is hi; 0 otherwise.
+
+>> Transition Features:
+>> 1. (hi−1, hi) = 1 if previous state is hi−1 and current state is hi; 0 otherwise.
+>> 2. (hi−1, hi, pi, pi−1) = cosine similarity between pi−1 and pi if previous state is hi−1 and current state is hi; 0 otherwise.
+>> 3. (hi−1, hi, pi, pi−1) = length of pi if previous state is hi−1, pi−1 has non-zero question words and current state is hi; 0 otherwise.
+>> 4. (hn, r) = 1 if last post’s state is hn and intervention decision is r; 0 otherwise.
+>> 5. (hn, r, pn) = 1 if last post’s state is hn, pn has non-zero question words and intervention decision is r; 0 otherwise.
+>> 6. (hn, r, pn) = log(course duration/t(pn)) if last post’s state is hn and intervention decision is r; 0 otherwise. Here t(pn) is the difference between the posting time of pn and the closest course landmark (assignment or project deadline or exam).
+
+>>> References
+>>> 1. https://www.aclweb.org/anthology/P14-1141.pdf
