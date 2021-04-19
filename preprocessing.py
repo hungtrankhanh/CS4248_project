@@ -1,54 +1,106 @@
-#!/usr/bin/env python.
-
-"""
-CS4248 Project
-"""
-
+import os
 from bs4 import BeautifulSoup
-from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score
-from sklearn.preprocessing import MaxAbsScaler, StandardScaler
-from textblob import TextBlob
-import datetime as dt
-import numpy as np
 import pandas as pd
-import scipy as sp
-import string
-import nltk
 import re
+import numpy as np
+import string
+from textblob import TextBlob
+import json
+import nltk
+from nltk.corpus import stopwords
 # nltk.download('punkt')
 # nltk.download('averaged_perceptron_tagger')
-import os
 
-train_path = 'train'
-test_path = 'test'
+from vectorizer import *
+from dateutil.parser import parse
+raw_file_train= 'datasets/train'
+raw_file_test = 'datasets/test'
 
-def loadDatasets(data_type):
-    x_train = None
-    y_label = None
-    dir_path = None
-    if data_type == 'train':
-        dir_path = train_path
-    elif data_type == 'test':
-        dir_path = test_path
-    for filename in os.listdir(dir_path):
-        print("filename : ", filename)
-        if ".csv" in filename:
-            csv_data = pd.read_csv(os.path.join(dir_path, filename))
-            train_data = sub_threads(csv_data)
-            if x_train is None:
-                x_train, y_label = engineer_features(train_data)
-            else:
-                temp_x, temp_y = engineer_features(train_data)
-                print("x_train : ", x_train.shape)
-                print("temp_x : ", temp_x.shape)
+featured_file_word2vec = 'processed_datasets/word2vec/'
+featured_file_tf_idf = 'processed_datasets/tf_idf/'
 
-                x_train = np.concatenate((x_train, temp_x), axis=0)
-                y_label = np.concatenate((y_label, temp_y), axis=0)
 
-    return x_train, y_label
+def load_datasets(args):
+    if args.dataset == "raw":
+        print("load dataset: load raw files")
+        dir_path = raw_file_train
+
+        list_of_dataframes = []
+        for filename in os.listdir(dir_path):
+            print("filename : ", filename)
+            if ".csv" in filename:
+                list_of_dataframes.append(pd.read_csv(os.path.join(dir_path, filename)))
+
+        csv_data = pd.concat(list_of_dataframes)
+        train_data = sub_threads(csv_data)
+
+        dir_path = raw_file_test
+        list_of_dataframes = []
+        for filename in os.listdir(dir_path):
+            print("filename : ", filename)
+            if ".csv" in filename:
+                list_of_dataframes.append(pd.read_csv(os.path.join(dir_path, filename)))
+
+        csv_data = pd.concat(list_of_dataframes)
+        test_data = sub_threads(csv_data)
+
+        if args.feature == "word2vec":
+            print("load_dataset: word2vec featuring")
+            x_train, y_train_label = engineer_features(train_data)
+            x_test, y_test_label = engineer_features(test_data)
+            save_processed_datasets(x_train, y_train_label, x_test, y_test_label, featured_file_word2vec)
+        elif args.feature == "tf_idf":
+            print("load_dataset: tf_idf featuring")
+            x_train, y_train_label, x_test, y_test_label = add_word_vectors_to_features(train_data, test_data)
+            save_processed_datasets(x_train, y_train_label, x_test, y_test_label, featured_file_tf_idf)
+    else:
+        if args.feature == "word2vec":
+            print("load_dataset: word2vec featuring")
+            x_train, y_train_label, x_test, y_test_label = load_processed_datasets(featured_file_word2vec)
+        elif args.feature == "tf_idf":
+            print("load_dataset: tf_idf featuring")
+            x_train, y_train_label, x_test, y_test_label = load_processed_datasets(featured_file_tf_idf)
+
+    print("load_dataset : x_train = ", x_train.shape)
+    print("load_dataset : y_train_label = ",y_train_label.shape)
+    return x_train, y_train_label, x_test, y_test_label
+
+def save_processed_datasets(X_train_data, y_train_label, X_test_data, y_test_label, path):
+    train_data_list = X_train_data.tolist()
+    with open(path + 'train_data.txt', 'w') as outfile:
+        json.dump(train_data_list, outfile)
+
+    train_label_list = y_train_label.tolist()
+    with open(path + 'train_label.txt', 'w') as outfile:
+        json.dump(train_label_list, outfile)
+
+    test_data_list = X_test_data.tolist()
+    with open(path + 'test_data.txt', 'w') as outfile:
+        json.dump(test_data_list, outfile)
+
+    test_label_list = y_test_label.tolist()
+    with open(path + 'test_label.txt', 'w') as outfile:
+        json.dump(test_label_list, outfile)
+
+def load_processed_datasets(path):
+
+    with open(path +  'train_data.txt') as json_file:
+        data = json.load(json_file)
+        X_train_data = np.array(data)
+
+    with open(path + 'train_label.txt') as json_file:
+        data = json.load(json_file)
+        y_train_label = np.array(data)
+
+    with open(path + 'test_data.txt') as json_file:
+        data = json.load(json_file)
+        X_test_data = np.array(data)
+
+    with open(path + 'test_label.txt') as json_file:
+        data = json.load(json_file)
+        y_test_label = np.array(data)
+
+    return X_train_data, y_train_label, X_test_data, y_test_label
 
 
 def sub_threads(data_df):
@@ -67,26 +119,69 @@ def sub_threads(data_df):
             tmp = p.strip()
             if len(tmp) > 0:
                 item_dict = data_df2_dict.copy()
+                last_upvotes = re.findall("Upvotes:[\s]+([-+]?\d+)", tmp)
                 if post_string is None:
                     post_string = tmp
-                    # print("post_string : ", post_string)
                 else:
                     post_string = post_string + "____" + tmp
+
                 item_dict['Input.posts'] = post_string
                 ans_key = 'Answer.' + str(post_num)
                 ans_val = 0
+
                 if ans_key in item_dict:
                     ans_val = np.nan_to_num(item_dict[ans_key])
                 item_dict["Label"] = 0
+
                 if ans_val > 0:
                     item_dict["Label"] = 1
+                item_dict["Num_Of_Posts"] = post_num
+
+                if len(last_upvotes) > 0:
+                    item_dict["Last_Upvotes"] = int(last_upvotes[0])
+                else:
+                    item_dict["Last_Upvotes"] = 0
+
                 data_df3_list.append(item_dict)
                 post_num += 1
-        # print("post_num : ", post_num)
 
     data_df3 = pd.DataFrame(data_df3_list)
     return data_df3
-    # print(x_data3.shape)
+
+
+def lema_count(token, text):
+    # token = token.casefold()
+    return len(re.findall(r"{}".format(token), text)) / 100.0
+
+
+def extract_percentage(text):
+    if text == '':
+        return 0
+    tmp = re.split(r'%', text)
+    rate = tmp[0].strip()
+    return int(rate) / 100.0
+
+
+def add_word_vectors_to_features(x_train_df, x_test_df):
+    # Word Vector Features
+    train_wordvecs, test_wordvecs = get_tfidf_vectors(x_train_df['Input.posts'], x_test_df['Input.posts'])
+
+    train_features_df = engineer_features(x_train_df)
+    test_features_df = engineer_features(x_test_df)
+
+    train_result = train_features_df.to_numpy()
+    test_result = test_features_df.to_numpy()
+
+    print(train_result.shape)
+    print(test_result.shape)
+    print(train_wordvecs.shape)
+    print(test_wordvecs.shape)
+
+    train_result = np.concatenate((train_result, train_wordvecs), axis=1)
+    test_result = np.concatenate((test_result, test_wordvecs), axis=1)
+    print(train_result.shape)
+    # result = preprocess(data=result)
+    return train_result, x_train_df['Label'].to_numpy(), test_result, x_test_df['Label'].to_numpy()
 
 
 def engineer_features(x_train_df):
@@ -95,9 +190,6 @@ def engineer_features(x_train_df):
     :param x_train: DataFrame of training data with column names following column names of input csv files
     :return: sparse matrix of engineered features
     """
-    # x_train = x_train[pd.notnull(x_train['Input.posts'])]
-    # x_train_df = pd.DataFrame(data=x_train)
-    # x_train_df['Posts'] = x_train['Input.posts'].apply(lambda x: BeautifulSoup(x, features="html.parser").get_text())
     features_df = pd.DataFrame(index=x_train_df.index)
 
     # == Thread only features ==
@@ -109,61 +201,84 @@ def engineer_features(x_train_df):
     # 3. Forum ID
     # TODO but not sure
     # 4. Start time of thread
-    features_df['f4'] = x_train_df['CreationTime'].apply(
-        lambda x: dt.datetime.strptime(x[4:-8] + x[-4:], '%b %d %H:%M:%S %Y').timestamp())
     # 5. Time of last post in thread
     # TODO
     # 6. Total number of posts in thread
     # TODO
+    features_df['f6'] = x_train_df['Num_Of_Posts']
     # 7. If thread title contains the words "lecture[s]"
-    list7 = ['lecture', 'lectures']
-    features_df['f7'] = x_train_df['Input.threadtitle'].apply(lambda x: 1 if any([w in x for w in list7]) else 0)
+    features_df['f7'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("lecture", x))
     # 8. If thread title contains the words "assignment[s]", "quiz[zes]", "grade[s]", "project[s]", "exam[s]"
-    list8 = ['assignment', 'assignments', 'quiz', 'quizzes', 'grade', 'grades,' 'project', 'projects', 'exam', 'exams',
-             'reading', 'readings']
-    features_df['f8'] = x_train_df['Input.threadtitle'].apply(lambda x: 1 if any([w in x for w in list8]) else 0)
+    features_df['f8_1'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("assignment", x))
+    features_df['f8_2'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("quiz", x))
+    features_df['f8_3'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("grade", x))
+    features_df['f8_4'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("project", x))
+    features_df['f8_5'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("exam", x))
+    features_df['f8_6'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("reading", x))
+    features_df['f8_7'] = x_train_df['Input.threadtitle'].apply(lambda x: lema_count("exercise", x))
 
     # == Aggregated post features (presense of keywords) ==
     # 9. Total number of votes for each individual post
     # TODO
+    features_df['f9_1'] = x_train_df['Last_Upvotes']
     # 10. Mean and variance of posting times of individual posts in thread
     # TODO
     # 11. Mean of time difference between between the posting times of individual posts and the closest course landmark. A course landmark is the deadline of an assignment, exam or project.
     # TODO
+    features_df['f11_2'] = x_train_df['LifetimeApprovalRate'].apply(lambda x: extract_percentage(x))  # percentage
+    features_df['f11_3'] = x_train_df['Last30DaysApprovalRate'].apply(lambda x: extract_percentage(x))  # percentage
+    features_df['f11_4'] = x_train_df['Last7DaysApprovalRate'].apply(lambda x: extract_percentage(x))  # percentage
     # 12. Count of occurrences of assessment related words "grade[s]", "exam[s]", "assignment[s]", "quiz[zes]", "reading[s]", "project[s]"
-    list12 = ['assignment', 'assignments', 'quiz', 'quizzes', 'grade', 'grades,' 'project', 'projects', 'exam', 'exams',
-              'reading', 'readings']
-    features_df['f12'] = x_train_df['Input.posts'].apply(lambda x: sum([x.count(w) for w in list12]))
+
+    features_df['f12_1'] = x_train_df['Input.posts'].apply(lambda x: lema_count("assignment", x))
+    features_df['f12_2'] = x_train_df['Input.posts'].apply(lambda x: lema_count("quiz", x))
+    features_df['f12_3'] = x_train_df['Input.posts'].apply(lambda x: lema_count("grade", x))
+    features_df['f12_4'] = x_train_df['Input.posts'].apply(lambda x: lema_count("project", x))
+    features_df['f12_5'] = x_train_df['Input.posts'].apply(lambda x: lema_count("exam", x))
+    features_df['f12_6'] = x_train_df['Input.posts'].apply(lambda x: lema_count("reading", x))
+    features_df['f12_7'] = x_train_df['Input.posts'].apply(lambda x: lema_count("exercise", x))
+
     # 13. Count of occurences of words indicating technical problems "problem[s]", "error[s]"
-    list13 = ['problem', 'problems', 'error', 'errors']
-    features_df['f13'] = x_train_df['Input.posts'].apply(lambda x: sum([x.count(w) for w in list13]))
+    features_df['f13_1'] = x_train_df['Input.posts'].apply(lambda x: lema_count("problem", x))
+    features_df['f13_2'] = x_train_df['Input.posts'].apply(lambda x: lema_count("error", x))
+    features_df['f13_3'] = x_train_df['Input.posts'].apply(lambda x: lema_count("fail", x))
+
     # 14. Count of occurences of thread conclusive words "thank you", "thank[s]", "appreciate"
-    list14 = ['thank you', 'thank', 'thanks', 'appreciate']
-    features_df['f14'] = x_train_df['Input.posts'].apply(lambda x: sum([x.count(w) for w in list14]))
+    features_df['f14_1'] = x_train_df['Input.posts'].apply(lambda x: lema_count("thank", x))
+    features_df['f14_2'] = x_train_df['Input.posts'].apply(lambda x: lema_count("appreciate", x))
+
     # 15. Count of occurences of words like "request", "submit", "suggest"
-    list15 = ['request', 'submit', 'suggest']
-    features_df['f15'] = x_train_df['Input.posts'].apply(lambda x: sum([x.count(w) for w in list15]))
+    # list15 = ['request', 'submit', 'suggest']
+    # features_df['f15'] = x_train_df['Input.posts'].apply(lambda x: sum([x.count(w) for w in list15]))
+
+    features_df['f15_1'] = x_train_df['Input.posts'].apply(lambda x: lema_count("request", x))
+    features_df['f15_2'] = x_train_df['Input.posts'].apply(lambda x: lema_count("submit", x))
+    features_df['f15_3'] = x_train_df['Input.posts'].apply(lambda x: lema_count("suggest", x))
 
     # == POS Tags of thread title and posts (labelled a and b respectively) ==
     # 16. word count
-    features_df['16a'] = x_train_df['Input.threadtitle'].apply(lambda x: len(x.split()))
-    features_df['16b'] = x_train_df['Input.posts'].apply(lambda x: len(x.split()))
+    features_df['16a'] = x_train_df['Input.threadtitle'].apply(lambda x: len(x.split()) / 100.0)
+    features_df['16b'] = x_train_df['Input.posts'].apply(lambda x: len(x.split()) / 100.0)
     # 17. character count
     features_df['17a'] = x_train_df['Input.threadtitle'].apply(len)
     features_df['17b'] = x_train_df['Input.posts'].apply(len)
+
+    features_df['17a'] = features_df['17a'] / 100.0
+    features_df['17b'] = features_df['17b'] / 100.0
     # 18. word density
     features_df['18a'] = features_df['17a'] / (features_df['16a'] + 1)
     features_df['18b'] = features_df['17b'] / (features_df['16b'] + 1)
     # 19. punctuation count
     features_df['19a'] = x_train_df['Input.threadtitle'].apply(
-        lambda x: len("".join(p for p in x if p in string.punctuation)))
+        lambda x: len("".join(p for p in x if p in string.punctuation)) / 10.0)
     features_df['19b'] = x_train_df['Input.posts'].apply(
-        lambda x: len("".join(p for p in x if p in string.punctuation)))
+        lambda x: len("".join(p for p in x if p in string.punctuation)) / 10.0)
     # 20. stopword count
     stop_words = list(set(stopwords.words('english')))
     features_df['20a'] = x_train_df['Input.threadtitle'].apply(
-        lambda x: len([s for s in x.split() if x.lower in stop_words]))
-    features_df['20b'] = x_train_df['Input.posts'].apply(lambda x: len([s for s in x.split() if x.lower in stop_words]))
+        lambda x: len([s for s in x.split() if x.lower in stop_words]) / 10.0)
+    features_df['20b'] = x_train_df['Input.posts'].apply(
+        lambda x: len([s for s in x.split() if x.lower in stop_words]) / 10.0)
     # 21. text polarity
     features_df['21a'] = x_train_df['Input.threadtitle'].apply(lambda x: TextBlob(x).sentiment.polarity)
     features_df['21b'] = x_train_df['Input.posts'].apply(lambda x: TextBlob(x).sentiment.polarity)
@@ -171,20 +286,25 @@ def engineer_features(x_train_df):
     features_df['22a'] = x_train_df['Input.threadtitle'].apply(lambda x: TextBlob(x).sentiment.subjectivity)
     features_df['22b'] = x_train_df['Input.posts'].apply(lambda x: TextBlob(x).sentiment.subjectivity)
     # 23. noun count
-    features_df['23a'] = x_train_df['Input.threadtitle'].apply(lambda x: count_partofspeech_tag(text=x, tag='noun'))
-    features_df['23b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='noun'))
+    features_df['23a'] = x_train_df['Input.threadtitle'].apply(
+        lambda x: count_partofspeech_tag(text=x, tag='noun') / 10.0)
+    features_df['23b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='noun') / 10.0)
     # 24. verb count
-    features_df['24a'] = x_train_df['Input.threadtitle'].apply(lambda x: count_partofspeech_tag(text=x, tag='verb'))
-    features_df['24b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='verb'))
+    features_df['24a'] = x_train_df['Input.threadtitle'].apply(
+        lambda x: count_partofspeech_tag(text=x, tag='verb') / 10.0)
+    features_df['24b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='verb') / 10.0)
     # 25. adjective count
-    features_df['25a'] = x_train_df['Input.threadtitle'].apply(lambda x: count_partofspeech_tag(text=x, tag='adj'))
-    features_df['25b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='adj'))
+    features_df['25a'] = x_train_df['Input.threadtitle'].apply(
+        lambda x: count_partofspeech_tag(text=x, tag='adj') / 10.0)
+    features_df['25b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='adj') / 10.0)
     # 26. adverb count
-    features_df['26a'] = x_train_df['Input.threadtitle'].apply(lambda x: count_partofspeech_tag(text=x, tag='adv'))
-    features_df['26b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='adv'))
+    features_df['26a'] = x_train_df['Input.threadtitle'].apply(
+        lambda x: count_partofspeech_tag(text=x, tag='adv') / 10.0)
+    features_df['26b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='adv') / 10.0)
     # 27. pronoun count
-    features_df['27a'] = x_train_df['Input.threadtitle'].apply(lambda x: count_partofspeech_tag(text=x, tag='pronoun'))
-    features_df['27b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='pronoun'))
+    features_df['27a'] = x_train_df['Input.threadtitle'].apply(
+        lambda x: count_partofspeech_tag(text=x, tag='pronoun') / 10.0)
+    features_df['27b'] = x_train_df['Input.posts'].apply(lambda x: count_partofspeech_tag(text=x, tag='pronoun') / 10.0)
 
     # == Post Emission Features == TODO but not sure
     # 28. (pi, hi) = count of occurrences of question words or question marks in pi if the state is hi; 0 otherwise.
@@ -204,15 +324,13 @@ def engineer_features(x_train_df):
     # 40. (hn, r, pn) = log(course duration/t(pn)) if last post’s state is hn and intervention decision is r; 0 otherwise. Here t(pn) is the difference between the posting time of pn and the closest course landmark (assignment or project deadline or exam).
 
     # result = sp.sparse.csr_matrix(features_df.values)
-    result = features_df.to_numpy()
-    # result = preprocess(data=result)
-    return result, x_train_df['Label'].to_numpy()
+    return features_df
 
 
 def count_partofspeech_tag(text, tag):
     pos_dict = {'noun': ['NN', 'NNS', 'NNP', 'NNPS'],
                 'verb': ['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'],
-                'adj': ['JJ', 'JJR', 'JJS'],
+                'adj':  ['JJ', 'JJR', 'JJS'],
                 'adv': ['RB', 'RBR', 'RBS', 'WRB'],
                 'pronoun': ['PRP', 'PRP$', 'WP', 'WP$']}
     count = 0
@@ -220,29 +338,3 @@ def count_partofspeech_tag(text, tag):
         if list(x)[1] in pos_dict[tag]:
             count += 1
     return count
-
-
-def preprocess(data):
-    scaler = MaxAbsScaler()
-    # scaler = StandardScaler(with_mean=False)
-    return scaler.fit_transform(data)
-
-def main():
-    print("------------1")
-    """ load training, validation, and test data """
-    dataset_path_1 = r'NUS_dataset/Task1-Marking_Task/'
-    dataset_path_2 = r'datasets/Task2-Categorisation_Task_low_lvl//'
-    dataset_path_3 = r'datasets/Task2-Categorisation_Task_top_lvl//'
-    dataset_file = r'_organalysis-003.lecture.5.csv'
-
-    train = pd.read_csv(dataset_path_1 + dataset_file)
-    print("------------2")
-    sub_threads(train)
-    # features_df, y_label = engineer_features(x_train=train)
-    # print(features_df.shape)
-    # print(y_label)
-
-
-# # Allow the main class to be invoked if run as a file.
-if __name__ == "__main__":
-    main()
