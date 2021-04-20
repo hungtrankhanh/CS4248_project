@@ -10,14 +10,23 @@ import numpy as np
 tfidf_vectorizer = TfidfVectorizer(use_idf=True, norm='l2', sublinear_tf=True, ngram_range=(1, 3), max_features=1000,
                                    stop_words='english')
 
+class word2vec():
+    def __init__(self):
+        self.w2c = None
+
+    def get_word2vec_model(self):
+        if self.w2c is None:
+            self.w2c = api.load('word2vec-google-news-300')
+        return self.w2c
+
+word2vec_instance = word2vec()
 
 def preprocess(text):
     text = BeautifulSoup(' '.join(text.split()), 'html.parser').get_text()
     return text
 
-
 def word2vec_avg(text):
-    word2vec_model = api.load('word2vec-google-news-300')
+    word2vec_model = word2vec_instance.get_word2vec_model()
     words = text.split()
     words = [word for word in words if word in word2vec_model.key_to_index]
     if len(words) >= 1:

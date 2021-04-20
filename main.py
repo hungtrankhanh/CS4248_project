@@ -2,11 +2,9 @@ import argparse
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, fbeta_score
-import torch
 from torch import optim
 import random
 import sys
-import numpy as np
 
 from preprocessing import *
 from mlp import *

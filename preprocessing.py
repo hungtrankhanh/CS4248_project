@@ -1,8 +1,6 @@
 import os
-from bs4 import BeautifulSoup
 import pandas as pd
 import re
-import numpy as np
 import string
 from textblob import TextBlob
 import json
@@ -12,7 +10,6 @@ from nltk.corpus import stopwords
 # nltk.download('averaged_perceptron_tagger')
 
 from vectorizer import *
-from dateutil.parser import parse
 raw_file_train= 'datasets/train'
 raw_file_test = 'datasets/test'
 
@@ -46,12 +43,11 @@ def load_datasets(args):
 
         if args.feature == "word2vec":
             print("load_dataset: word2vec featuring")
-            x_train, y_train_label = engineer_features(train_data)
-            x_test, y_test_label = engineer_features(test_data)
+            x_train, y_train_label, x_test, y_test_label = add_word2vec_vectors_to_features(train_data, test_data)
             save_processed_datasets(x_train, y_train_label, x_test, y_test_label, featured_file_word2vec)
         elif args.feature == "tf_idf":
             print("load_dataset: tf_idf featuring")
-            x_train, y_train_label, x_test, y_test_label = add_word_vectors_to_features(train_data, test_data)
+            x_train, y_train_label, x_test, y_test_label = add_tfidf_vectors_to_features(train_data, test_data)
             save_processed_datasets(x_train, y_train_label, x_test, y_test_label, featured_file_tf_idf)
     else:
         if args.feature == "word2vec":
@@ -174,9 +170,11 @@ def extract_percentage(text):
     return int(rate) / 100.0
 
 
-def add_word_vectors_to_features(x_train_df, x_test_df):
+def add_word2vec_vectors_to_features(x_train_df, x_test_df):
     # Word Vector Features
-    train_wordvecs, test_wordvecs = get_tfidf_vectors(x_train_df['Input.posts'], x_test_df['Input.posts'])
+    train_wordvecs = np.vstack(x_train_df['Input.posts'].apply(lambda x: word2vec_avg(x)))
+    test_wordvecs = np.vstack(x_test_df['Input.posts'].apply(lambda x: word2vec_avg(x)))
+
 
     train_features_df = engineer_features(x_train_df)
     test_features_df = engineer_features(x_test_df)
@@ -191,6 +189,28 @@ def add_word_vectors_to_features(x_train_df, x_test_df):
 
     train_result = np.concatenate((train_result, train_wordvecs), axis=1)
     test_result = np.concatenate((test_result, test_wordvecs), axis=1)
+    print(train_result.shape)
+    # result = preprocess(data=result)
+    return train_result, x_train_df['Label'].to_numpy(), test_result, x_test_df['Label'].to_numpy()
+
+
+def add_tfidf_vectors_to_features(x_train_df, x_test_df):
+    # Word Vector Features
+    train_tfidf, test_tfidf = get_tfidf_vectors(x_train_df['Input.posts'], x_test_df['Input.posts'])
+
+    train_features_df = engineer_features(x_train_df)
+    test_features_df = engineer_features(x_test_df)
+
+    train_result = train_features_df.to_numpy()
+    test_result = test_features_df.to_numpy()
+
+    print(train_result.shape)
+    print(test_result.shape)
+    print(train_tfidf.shape)
+    print(test_tfidf.shape)
+
+    train_result = np.concatenate((train_result, train_tfidf), axis=1)
+    test_result = np.concatenate((test_result, test_tfidf), axis=1)
     print(train_result.shape)
     # result = preprocess(data=result)
     return train_result, x_train_df['Label'].to_numpy(), test_result, x_test_df['Label'].to_numpy()
