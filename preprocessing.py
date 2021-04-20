@@ -66,9 +66,15 @@ def load_datasets(args):
     return x_train, y_train_label, x_test, y_test_label
 
 def save_processed_datasets(X_train_data, y_train_label, X_test_data, y_test_label, path):
+    X_data_len = len(X_train_data)
+    N = X_data_len // 3
     train_data_list = X_train_data.tolist()
-    with open(path + 'train_data.txt', 'w') as outfile:
-        json.dump(train_data_list, outfile)
+    with open(path + 'train_data_1.txt', 'w') as outfile:
+        json.dump(train_data_list[0:N], outfile)
+    with open(path + 'train_data_2.txt', 'w') as outfile:
+        json.dump(train_data_list[N:2*N], outfile)
+    with open(path + 'train_data_3.txt', 'w') as outfile:
+        json.dump(train_data_list[2*N:X_data_len], outfile)
 
     train_label_list = y_train_label.tolist()
     with open(path + 'train_label.txt', 'w') as outfile:
@@ -84,9 +90,15 @@ def save_processed_datasets(X_train_data, y_train_label, X_test_data, y_test_lab
 
 def load_processed_datasets(path):
 
-    with open(path +  'train_data.txt') as json_file:
+    with open(path + 'train_data_1.txt') as json_file:
         data = json.load(json_file)
         X_train_data = np.array(data)
+    with open(path + 'train_data_2.txt') as json_file:
+        data = json.load(json_file)
+        X_train_data = np.concatenate((X_train_data, np.array(data)), axis=0)
+    with open(path + 'train_data_3.txt') as json_file:
+        data = json.load(json_file)
+        X_train_data = np.concatenate((X_train_data, np.array(data)), axis=0)
 
     with open(path + 'train_label.txt') as json_file:
         data = json.load(json_file)

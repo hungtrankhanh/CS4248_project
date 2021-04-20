@@ -93,8 +93,8 @@ def train(model,X,Y, optimizer, criterion, device, batch_size=32, n_epochs = 20)
             epoch_val_loss = epoch_val_loss / len(valid_loader)
             epoch_val_acc = epoch_val_acc / len(valid_loader)
 
-        print(f'\tTrain Loss: {epoch_train_loss:.3f} | Train Acc: {epoch_train_acc * 100:.2f}%')
-        print(f'\t Val. Loss: {epoch_val_loss:.3f} |  Val. Acc: {epoch_val_acc * 100:.2f}%')
+        print(f'\tepoch: {epoch}/{n_epochs} | Train Loss: {epoch_train_loss:.3f} | Train Acc: {epoch_train_acc * 100:.2f}%')
+        print(f'\tepoch: {epoch}/{n_epochs} | Val. Loss: {epoch_val_loss:.3f} |  Val. Acc: {epoch_val_acc * 100:.2f}%')
 
     return model
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     model = model.to(device)
 
     # Define hyperparameters
-    n_epochs = 60
+    n_epochs = 50
     lr = 0.0001
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -132,7 +132,7 @@ if __name__ == "__main__":
 
     # Use f1-macro as the metric
     score = f1_score(y_test_label, preds.round(), average='binary')
-    print('score on validation = {}'.format(score))
+    print('f1 score on validation = {}'.format(score))
     print('accuracy score on validation = {}'.format(accuracy_score(y_test_label, preds.round())))
     print('precision score on validation = {}'.format(precision_score(y_test_label, preds.round(), average='binary')))
     print('recall score on validation = {}'.format(recall_score(y_test_label, preds.round(), average='binary')))
