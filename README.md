@@ -1,12 +1,12 @@
 # CS4248_project
 
-##Environment setup
+## Environment setup
 
 - python version = 3.7
 
 - pip install -r requirements.txt
 
-# run program
+# Run program
 ## tf_idf feature: 
 ### a. load raw files from dataset and featuring : 
 	- python main.py --feature tf_idf --dataset raw
