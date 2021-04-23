@@ -1,4 +1,4 @@
-# CS4248_project - Group 04
+# CS4248_project - Group 04 : Instructor Intervention Prediction In MOOC
 
 ## 1. Environment setup
 
