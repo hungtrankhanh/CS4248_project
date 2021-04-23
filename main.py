@@ -130,10 +130,10 @@ if __name__ == "__main__":
 
     # Use f1-macro as the metric
     score = f1_score(y_test_label, preds.round(), average='binary')
-    print('f1 score on validation = {}'.format(score))
-    print('accuracy score on validation = {}'.format(accuracy_score(y_test_label, preds.round())))
-    print('precision score on validation = {}'.format(precision_score(y_test_label, preds.round(), average='binary')))
-    print('recall score on validation = {}'.format(recall_score(y_test_label, preds.round(), average='binary')))
-    print('f2 score on validation = {}'.format(f2_score(y_test_label, preds.round())))
+    print('f1 score on test data = {}'.format(score))
+    print('accuracy score on test data = {}'.format(accuracy_score(y_test_label, preds.round())))
+    print('precision score on test data = {}'.format(precision_score(y_test_label, preds.round(), average='binary')))
+    print('recall score on test data = {}'.format(recall_score(y_test_label, preds.round(), average='binary')))
+    print('f2 score on test data = {}'.format(f2_score(y_test_label, preds.round())))
 
 

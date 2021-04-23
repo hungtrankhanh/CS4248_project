@@ -25,14 +25,16 @@ Preprocessing and feature engineering over the corpora takes long time (nearly 2
 
 ## 4. Model performance
 ### 4.1 tf_idf feature: 
-	- f1 score on validation = 0.88
-	- accuracy score on validation = 0.81
-	- precision score on validation = 0.85
-	- recall score on validation = 0.92
-	- f2 score on validation = 0.91
+	- f1 score on test data = 0.88
+	- accuracy score on test data = 0.81
+	- precision score on test data = 0.85
+	- recall score on test data = 0.92
+	- f2 score on test data = 0.91
+
 ### 4.2 word2vec feature: 
-	- f1 score on validation = 0.88
-	- accuracy score on validation = 0.82
-	- precision score on validation = 0.85
-	- recall score on validation = 0.92
-	- f2 score on validation = 0.90
+	- f1 score on test data = 0.88
+	- accuracy score on test data = 0.82
+	- precision score on test data = 0.85
+	- recall score on test data = 0.92
+	- f2 score on test data = 0.90
+
