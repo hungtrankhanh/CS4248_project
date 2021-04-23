@@ -18,7 +18,7 @@ featured_file_tf_idf = 'processed_datasets/tf_idf/'
 
 
 def load_datasets(args):
-    if args.dataset == "raw":
+    if args.dataset == "unprocessed":
         print("load dataset: load raw files")
         dir_path = raw_file_train
 
@@ -58,7 +58,7 @@ def load_datasets(args):
             x_train, y_train_label, x_test, y_test_label = load_processed_datasets(featured_file_tf_idf)
 
     print("load_dataset : x_train = ", x_train.shape)
-    print("load_dataset : y_train_label = ",y_train_label.shape)
+    print("load_dataset : x_test = ", x_test.shape)
     return x_train, y_train_label, x_test, y_test_label
 
 def save_processed_datasets(X_train_data, y_train_label, X_test_data, y_test_label, path):
@@ -354,7 +354,6 @@ def engineer_features(x_train_df):
     # 38. (hn, r) = 1 if last post’s state is hn and intervention decision is r; 0 otherwise.
     # 39. (hn, r, pn) = 1 if last post’s state is hn, pn has non-zero question words and intervention decision is r; 0 otherwise.
     # 40. (hn, r, pn) = log(course duration/t(pn)) if last post’s state is hn and intervention decision is r; 0 otherwise. Here t(pn) is the difference between the posting time of pn and the closest course landmark (assignment or project deadline or exam).
-
     # result = sp.sparse.csr_matrix(features_df.values)
     return features_df
 

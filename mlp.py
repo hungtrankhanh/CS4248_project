@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class IntervenionModel(nn.Module):
+class IntervenedPredictionModel(nn.Module):
   def __init__(self, D_in, H1, D_out = 1):
       super().__init__()
       self.linear1 = nn.Linear(D_in, H1)

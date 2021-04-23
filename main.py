@@ -113,7 +113,7 @@ if __name__ == "__main__":
     X_train_data, y_train_label, X_test_data, y_test_label = load_datasets(args)
     d_in = X_train_data.shape[1]
     # Instantiate the model with hyperparameters
-    model = IntervenionModel(d_in, 12)
+    model = IntervenedPredictionModel(d_in, 12)
     # We'll also set the model to the device that we defined earlier (default is CPU)
     model = model.to(device)
 
