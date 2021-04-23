@@ -1,4 +1,4 @@
-# CS4248_project
+# CS4248_project - Group 04
 
 ## 1. Environment setup
 
