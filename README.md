@@ -2,7 +2,7 @@
 
 ## 1. Environment setup
 
-- python version = 3.7
+- python version = 3.6.12
 
 - pip install -r requirements.txt
 
